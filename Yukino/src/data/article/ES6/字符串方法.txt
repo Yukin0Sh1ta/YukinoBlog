@@ -1,0 +1,36 @@
+原生字符串方法为indexOf()字符串中是否包含n
+
+1.startsWith()，ends With()，includes()
+分别是头部，尾部和整体是否包含n并返回一个布尔值
+let str = "hello world!";
+
+console.log(str.startsWith("hello")); //true
+console.log(str.endsWith("!")); //true
+console.log(str.includes("hello")); //true
+
+console.log(str.startsWith("world", 6)); //true
+console.log(str.endsWith("hello", 5)); //true
+console.log(str.includes("hello", 6)); //false
+2.repeat()将原字符串重复n次返回一个新字符串
+let str = "x";
+console.log(str.repeat(5)); //xxxxx
+console.log(str.repeat(0));//
+3.padStart()padEnd()分别用于头部补全和尾部补全
+let str = "x";
+console.log(str.padStart(5,"abc"));//abcax
+console.log(str.padStart(4,"abc"));//abcx
+console.log(str.padEnd(5,"abc"));//xabca
+console.log(str.padEnd(4,"abc"));//xabc
+4.trimStart()trimEnd()分别用于去除前面空格和去除后面空格
+let str = "  hello  ";
+console.log(str.trim()); //hello
+console.log(str.trimStart()); //hello  
+console.log(str.trimEnd()); //  hello
+5.at()接受一个整数为参数，返回所在位置的字符串，支持负索引
+let str = "hello";
+console.log(str.at(0)); //h
+console.log(str.at(-1)); //o
+console.log(str.at(10))//undefined
+console.log(str.at(-10))//undefined
+
+

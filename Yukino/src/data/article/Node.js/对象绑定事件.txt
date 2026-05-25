@@ -1,0 +1,21 @@
+//引入事件模块和工具模块
+var event = require("events");
+var util = require("util");
+//创建一个Person类，继承EventEmitter
+var Person = function (name) {
+  this.name = name;
+};
+util.inherits(Person, event.EventEmitter);
+//创建两个Person对象
+var person1 = new Person("张三");
+var person2 = new Person("李四");
+var person = [person1, person2];
+//为person1和person2绑定事件
+person.forEach(function (item) {
+  item.on("speak", function (msg) {
+    console.log(item.name + "say:" + msg);
+  });
+});
+//触发事件
+person1.emit("speak", "我是张三");
+person2.emit("speak", "我是李四");

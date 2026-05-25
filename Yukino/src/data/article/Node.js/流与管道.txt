@@ -1,0 +1,23 @@
+当数据更大后可以用流和管道的形式进行操作
+1.流
+var fs = require("fs");
+
+let read = fs.createReadStream(__dirname + "/test.txt", "utf8");
+let write = fs.createWriteStream(__dirname + "/write.txt");
+var data = "";
+read.on("data", (chunk) => {
+  data += chunk;
+  write.write(chunk);
+});
+read.on("end", () => {
+  console.log("读取完毕：" + data);
+});
+2.管道
+var fs = require("fs");
+
+let read = fs.createReadStream(__dirname + "/test.txt", "utf8");
+let write = fs.createWriteStream(__dirname + "/write.txt");
+read.pipe(write);
+read.on("end", () => {
+  console.log("写入完成!");
+});

@@ -1,0 +1,43 @@
+1.在大括号中，可以直接写入变量和函数作为对象的属性和方法
+let names = "张三";
+let person = {
+  names: names,
+  getNames() {
+    console.log("我的名字是:" + this.names);
+  },
+};
+console.log(person.names); //张三
+person.getNames(); //我的名字是:张三
+等同于
+let names = "张三";
+let person = {
+  names: names,
+  getNames: function () {
+    console.log("我的名字是:" + this.names);
+  },
+};
+console.log(person.names); //张三
+person.getNames(); //我的名字是:张三
+2.可以用表达式作为对象的属性名写进方括号[]里
+let x = "names";
+let y = "get";
+let z = "Names";
+let person = {
+  [x]: "张三",
+  ["ye" + "ar"]: 2025,
+  [y + z]() {
+    console.log("我的名字是:" + this.names);
+  },
+};
+console.log(person.names); //张三
+console.log(person.year); //2025
+person.getNames(); //我的名字是:张三
+3.和数组一样的扩展运算符三个点(...)，用于展开里面的值
+let person = {
+  name: "张三",
+  sex: "男",
+};
+let msg = { person };
+let deepMsg = { ...person };
+console.log(msg); //{ person: { name: '张三', sex: '男' } }
+console.log(deepMsg); //{ name: '张三', sex: '男' }

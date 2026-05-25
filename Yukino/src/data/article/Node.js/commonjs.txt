@@ -1,0 +1,9 @@
+1.导出的文件里面写
+module.exports ={
+	函数名
+}
+2.导入的文件里面写
+const utils = require("导出文件的路径")
+用utils调用
+
+不要和es6导出方式弄混

@@ -1,0 +1,24 @@
+原生创建函数有两种方法
+1.直接声明函数
+function fn1(){}
+2.赋值声明函数
+let fn1 = function(){}
+es6衍生了箭头函数
+let fn3 = (x, y) => x + y;
+如果单返回一个对象的话需要在外面加个括号
+let fn4 = (x, y) => ({ x, y });
+箭头函数不同于普通函数，他没有自己的this，调用时是引用外层的this
+let names = "张三";
+let person = {
+  names: "李四",
+  getNames() {
+    setTimeout(() => {
+      console.log(this.names);
+    }, 2000);
+  },
+};
+person.getNames(); //李四
+！！this的传递
+普通函数：谁调用，this 指向谁（动态绑定）。
+箭头函数：定义时确定，继承外层 this（静态绑定）。
+显式绑定：call/apply/bind 强制指定。

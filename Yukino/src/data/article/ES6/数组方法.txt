@@ -1,0 +1,42 @@
+1.Array.form() 将类数组转换为数组
+function arr() {
+  var result = Array.from(arguments);
+  result.push(40)
+  console.log(result)
+}
+arr(10, 20, 30);//[ 10, 20, 30, 40 ]
+2.Array.of()将一组值转换为数组
+console.log(10,20,30);//10 20 30
+console.log(Array.of(10,20,30));//[ 10, 20, 30 ]
+3.Array()创建一个新数组，里面填整数表示新数组长度
+console.log(Array(3)) //[,,]
+4.数组的扩展运算符为三个点（...）   将数组转换成值
+let arr = ["name",0,"sex"]
+console.log(...arr) //name 0 sex
+
+！类数组只可以使用数组的读取方式和length属性，不能使用数组方法：push等
+类数组分为三种：
+1.arguments
+function arr() {
+  console.log(arguments[0]);
+}
+arr(10, 20, 30); // 10
+
+2.元素集合
+<body>
+    <h1>title</h1>
+    <h1>title</h1>
+    <h1>title</h1>
+    <script>
+      let arr = document.querySelectorAll("h1");
+      console.log(arr[0]); //<h1>title</h1>
+    </script>
+  </body>
+3.类数组对象
+let num = {
+  0: "name",
+  1: "olo",
+  length:2
+};
+
+console.log(num[0]); //name

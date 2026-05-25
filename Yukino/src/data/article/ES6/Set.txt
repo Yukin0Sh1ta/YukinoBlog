@@ -1,0 +1,32 @@
+Set类似于数组是一种集合，但是成员的值都是唯一的，没有重复的值
+1.可以通过add()，delete()方法向里面添加值和删除值，
+let x = new Set();
+let arr = [10, 20, 20, 30, 40, 50];
+for (item of arr) {
+  x.add(item);
+}
+x.delete(10)
+console.log(x) //Set(4) { 20, 30, 40, 50 }
+2.has()返回一个布尔值，表示该值是否为Set的成员clear()清楚所有成员，没有返回值
+let x = new Set();
+x.add(10);
+console.log(x.has(10));//true
+x.clear()
+console.log(x.has(10));//false
+3.Set函数可以接受一个数组作为参数，也可以用扩展运算符三个点(...)来提取值再重新组一个数组
+let x = new Set([1,2,3,4]);
+console.log([...x]);//[ 1, 2, 3, 4 ]
+4.也可以通过Set()对数组去重
+let arr = [10, 20, 30, 30, 40];
+console.log([...new Set(arr)]);//[ 10, 20, 30, 40 ]
+如果是去重字符串的话需要用到join("")重新转换成一个字符串
+let x = "abcabcd";
+let y = [...new Set(x)].join("");
+console.log(y); //abcd
+5.Set有一个size属性用于返回Set实例的成员总数
+let arr = [10,20,30,40,40,50,50]
+let set = new Set()
+for(item of arr){
+    set.add(item)
+}
+console.log(set.size) //5

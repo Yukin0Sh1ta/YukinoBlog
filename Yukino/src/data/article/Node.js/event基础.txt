@@ -1,0 +1,10 @@
+//导入事件
+var events = require("events");
+//创建事件对象
+var emitter = new events.EventEmitter();
+//设置事件监听器
+emitter.on("someEvent", function (arg1, arg2) {
+  console.log("listener1", arg1, arg2);
+});
+//触发事件
+emitter.emit("someEvent", "arg1参数", "arg2参数");

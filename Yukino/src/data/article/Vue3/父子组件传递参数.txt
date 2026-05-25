@@ -1,0 +1,24 @@
+①父传给子
+1.子类组件先创建一个props对象，接收父组件传递的数据
+const props = () =>defineProps({
+  data: {type: String, default: ''},
+});
+2.子类模板中使用props对象中的数据
+<p>{{ props.data }}</p>
+3.父组件在使用子组件时，传递数据给子组件
+<ChildComponent :data="data" />
+②子传给父
+1.子类组件创建一个defineEmits函数自定义事件
+const emit = defineEmits(["send"]); // 声明事件
+2.再创建一个发送事件
+const msg = ref("这是关于页面");
+const sendEvent = () => {
+  emit("send", msg);
+};
+3.触发发送事件后即刻将msg传给父类组件
+4.父类组件导入子类组件后模板导出
+<ChildComponent @send="getData" /> //此时的@send为子类组件自定义事件
+5.自定义事件内的getData为父类组件创建的事件，用变量将getData中的data数据存储起来即可
+const getData = (data) => {
+  msg.value = data;
+};
