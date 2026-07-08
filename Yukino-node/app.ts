@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import talkRouter from "./routes/talk.js";
 import articleRouter from "./routes/article.js";
@@ -13,10 +13,10 @@ app.use(express.static("public"));
 app.use("/api/talk", talkRouter);
 app.use("/api/articles", articleRouter);
 
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
 });
 
 app.listen(PORT, () => {
-  console.log(`11111111Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
