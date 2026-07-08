@@ -11,7 +11,7 @@ router.get("/", async (_req: Request, res: Response) => {
     const data = await getArticles();
     res.json(data);
   } catch (e) {
-    console.error("GET /api/articles error", e);
+    console.log("GET /api/articles error", e);
     res.status(500).json([]);
   }
 });
