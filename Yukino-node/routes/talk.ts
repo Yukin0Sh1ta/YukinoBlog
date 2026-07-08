@@ -1,9 +1,9 @@
-import { Router } from "express";
-import { getTalks, addTalk } from "../services/talkService.js";
+import { Router, Request, Response } from "express";
+import { getTalks, addTalk, TalkMessage } from "../services/talkService.js";
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
+router.get("/", async (_req: Request, res: Response) => {
   try {
     const data = await getTalks();
     res.json(data);
@@ -13,14 +13,15 @@ router.get("/", async (_req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: Request, res: Response) => {
   const { username, text } = req.body || {};
   if (!text || typeof text !== "string" || text.trim().length === 0) {
-    return res.status(400).json({ error: "invalid text" });
+    res.status(400).json({ error: "invalid text" });
+    return;
   }
   const cleanedText = String(text).trim().slice(0, 200);
   const name = (username && String(username).trim()) || "匿名";
-  const msg = {
+  const msg: TalkMessage = {
     id: Date.now() + Math.floor(Math.random() * 1000),
     username: name,
     text: cleanedText,
