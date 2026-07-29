@@ -46,7 +46,7 @@ const emit = defineEmits<{
 const siderItems = computed(() =>
   titles.value.map((t) => ({
     id: t.id,
-    titleName: t.titleName,
+    titleName: t.title_name,
   }))
 );
 

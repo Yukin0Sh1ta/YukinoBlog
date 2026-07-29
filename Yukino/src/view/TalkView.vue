@@ -1,5 +1,8 @@
 <template>
-  <div ref="talkRef" class="fixed left-1/2 -translate-x-1/2 bottom-5 z-[10001] w-[min(720px,calc(100%-48px))] max-w-[720px] h-14 flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[linear-gradient(150deg,rgba(18,18,20,0.92),rgba(10,10,12,0.82))] shadow-[0_8px_20px_rgba(0,0,0,0.6)] border border-white/[0.15] backdrop-blur-md backdrop-saturate-110 text-[#eaf2ff] overflow-visible max-sm:h-[52px] max-sm:px-2.5">
+  <div
+    ref="talkRef"
+    class="fixed left-1/2 -translate-x-1/2 bottom-5 z-[10001] w-[min(720px,calc(100%-48px))] max-w-[720px] h-14 flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[linear-gradient(150deg,rgba(18,18,20,0.92),rgba(10,10,12,0.82))] shadow-[0_8px_20px_rgba(0,0,0,0.6)] border border-white/[0.15] backdrop-blur-md backdrop-saturate-110 text-[#eaf2ff] overflow-visible max-sm:h-[52px] max-sm:px-2.5"
+  >
     <!-- 留言输入区（不在页面显示留言列表） -->
     <input
       v-model="username"
@@ -13,7 +16,7 @@
       type="text"
       placeholder="说点什么吧"
       class="flex-[1_1_auto] h-[30px] min-h-[30px] px-2 py-1.5 rounded-[10px] border border-white/10 bg-white/10 text-xs text-[#f7fbff] leading-[1.2] overflow-hidden focus:outline-none focus:border-[#ea5cb6] focus:shadow-[0_6px_18px_rgba(47,176,255,0.12)] focus:bg-white/[0.04] placeholder:text-[rgba(245,250,255,0.55)] placeholder:text-xs placeholder:opacity-100 max-sm:h-7 max-sm:text-xs"
-      @keydown.enter.prevent="postMessage"
+      @keydown.enter.prevent="handleSendClick"
       :maxlength="MAX"
     />
 
@@ -22,17 +25,9 @@
       <button
         type="button"
         class="h-8 px-2.5 py-1.5 rounded-[10px] border-none bg-[linear-gradient(90deg,#ea5cb6,#d83e93)] text-white font-semibold shadow-[0_6px_14px_rgba(47,176,255,0.14)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed max-sm:h-7 max-sm:px-2"
-        @click="postMessage"
+        @click="handleSendClick"
         :disabled="!canSend"
       >发送</button>
-    </div>
-    <div class="absolute right-3 -top-7 bg-black/50 text-white px-2 py-1 rounded-xl text-xs z-[10003] flex items-center gap-1 whitespace-nowrap">
-      得分: {{ score }} &nbsp;|&nbsp; 最高: {{ highScore }}
-      <button
-        class="bg-white/[0.15] border-none text-white cursor-pointer size-5 rounded-full text-sm leading-none flex items-center justify-center p-0 transition-colors duration-200 hover:bg-white/[0.35]"
-        @click="resetGame"
-        title="重置游戏"
-      >↺</button>
     </div>
 
     <!-- 横向飘动层（渲染到 body） -->
@@ -59,71 +54,88 @@
         ></div>
       </div>
     </teleport>
-
-    <!-- 游戏元素渲染到 body -->
-    <teleport to="body">
-      <div
-        class="fixed left-0 top-0 w-full h-full pointer-events-none z-[10002]"
-        aria-hidden="false"
-      >
-        <div
-          ref="paddleEl"
-          class="fixed h-px bg-white pointer-events-auto cursor-ew-resize rounded-[1px]"
-          :style="{ left: paddleX + 'px', top: paddleY + 'px', width: paddleW + 'px' }"
-        ></div>
-        <svg
-          v-if="true"
-          class="aim-canvas"
-          :style="{ position: 'fixed', left: 0, top: 0, width: '100%', height: '100%', pointerEvents: 'none' }"
-        >
-          <defs>
-            <marker
-              id="aimArrow"
-              markerWidth="10"
-              markerHeight="10"
-              refX="9"
-              refY="5"
-              orient="auto"
-              markerUnits="strokeWidth"
-            >
-              <path
-                d="M0,0 L0,10 L10,5 z"
-                fill="rgba(255,255,255,0.95)"
-              />
-            </marker>
-          </defs>
-          <line
-            v-if="isAiming"
-            :x1="aimStartX"
-            :y1="aimStartY"
-            :x2="aimX"
-            :y2="aimY"
-            stroke="rgba(255,255,255,0.9)"
-            stroke-width="3"
-            stroke-linecap="round"
-            marker-end="url(#aimArrow)"
-          />
-        </svg>
-        <div
-          ref="ballEl"
-          class="fixed size-5 bg-white rounded-full pointer-events-auto cursor-pointer shadow-[0_6px_18px_rgba(255,255,255,0.08),0_2px_6px_rgba(0,0,0,0.4)] translate-z-0"
-          :style="{ left: (ballX - ballR) + 'px', top: (ballY - ballR) + 'px', width: ballR*2 + 'px', height: ballR*2 + 'px' }"
-        ></div>
-      </div>
-    </teleport>
   </div>
+
+  <!-- 验证码弹窗 -->
+  <teleport to="body">
+    <transition name="modal-fade">
+      <div
+        v-if="captchaModalVisible"
+        class="fixed inset-0 z-[10010] flex items-center justify-center"
+        @click.self="closeCaptchaModal"
+      >
+        <!-- 遮罩层 -->
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+        <!-- 弹窗主体 -->
+        <div
+          class="relative w-[min(400px,calc(100%-32px))] max-w-[400px] rounded-2xl bg-[linear-gradient(150deg,rgba(18,18,20,0.96),rgba(10,10,12,0.9))] shadow-[0_16px_40px_rgba(0,0,0,0.7)] border border-white/[0.15] backdrop-blur-xl backdrop-saturate-110 p-5 max-sm:p-4"
+        >
+          <h3 class="text-[#eaf2ff] text-base font-semibold mb-4 text-center max-sm:text-sm max-sm:mb-3">发送留言</h3>
+
+          <!-- 内容摘要 -->
+          <div class="mb-4 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 max-sm:mb-3">
+            <div class="text-[#ea5cb6] text-xs font-semibold mb-1">{{ captchaSummary.name }}</div>
+            <div class="text-[rgba(230,240,255,0.85)] text-xs leading-relaxed line-clamp-2">{{ captchaSummary.content }}</div>
+          </div>
+
+          <!-- 验证码图片 -->
+          <div class="mb-3 flex items-center gap-3">
+            <div
+              class="flex-1 h-12 rounded-xl bg-white/[0.06] border border-white/[0.12] flex items-center justify-center cursor-pointer overflow-hidden select-none transition-colors duration-200 hover:border-[#ea5cb6]/50"
+              @click="refreshCaptcha"
+              title="点击刷新验证码"
+              v-html="captchaSvg"
+            ></div>
+            <button
+              type="button"
+              class="h-10 px-3 rounded-xl border border-white/[0.12] bg-white/[0.06] text-[rgba(230,240,255,0.8)] text-xs cursor-pointer transition-all duration-200 hover:bg-white/[0.12] hover:text-white active:scale-95"
+              @click="refreshCaptcha"
+            >刷新</button>
+          </div>
+
+          <!-- 验证码输入 -->
+          <input
+            v-model="captchaInput"
+            type="text"
+            placeholder="请输入验证码"
+            maxlength="6"
+            class="w-full h-10 px-3 rounded-xl border border-white/10 bg-white/10 text-sm text-[#f5f8ff] outline-none focus:border-[#ea5cb6] focus:shadow-[0_6px_18px_rgba(47,176,255,0.12)] focus:bg-white/[0.04] placeholder:text-[rgba(245,250,255,0.5)] placeholder:text-xs mb-4 max-sm:mb-3"
+            @keydown.enter.prevent="confirmCaptcha"
+          />
+
+          <!-- 提示信息 -->
+          <div v-if="captchaError" class="mb-3 text-[#ff6b6b] text-xs text-center">{{ captchaError }}</div>
+
+          <!-- 按钮区 -->
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="flex-1 h-9 rounded-xl border border-white/[0.12] bg-white/[0.06] text-[rgba(230,240,255,0.85)] text-xs font-medium cursor-pointer transition-all duration-200 hover:bg-white/[0.12] hover:text-white active:scale-95"
+              @click="closeCaptchaModal"
+            >取消</button>
+            <button
+              type="button"
+              class="flex-1 h-9 rounded-xl border-none bg-[linear-gradient(90deg,#ea5cb6,#d83e93)] text-white text-xs font-semibold cursor-pointer shadow-[0_6px_14px_rgba(47,176,255,0.14)] transition-all duration-200 hover:shadow-[0_8px_20px_rgba(47,176,255,0.22)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="confirmCaptcha"
+              :disabled="!captchaInput.trim()"
+            >确认发送</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </teleport>
 
   <!-- 留言列表已移除；仅保留飘动层 -->
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick, computed, Ref } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed } from "vue";
 import { watch } from "vue";
-import { fetchTalks, postTalk, type TalkMessage } from "../api/talk";
+import { fetchTalks, postTalk, fetchCaptcha, type TalkMessage } from "../api/talk";
 
 const STORAGE_KEY = "Yukino_talk_messages";
 const NAME_KEY = "Yukino_talk_username";
-const HIGH_SCORE_KEY = "Yukino_high_score";
 const MAX = 30;
 const MAX_FLOATS = 60;
 
@@ -137,15 +149,20 @@ interface FloatItem {
   delay: number;
   opacity: number;
   startTime: number;
-  _hit?: boolean;
 }
 
 const username = ref<string>("");
 const text = ref<string>("");
 const messages = ref<TalkMessage[]>([]);
 const floats = ref<FloatItem[]>([]);
-const score = ref<number>(0);
-const highScore = ref<number>(0);
+
+// 验证码弹窗状态
+const captchaModalVisible = ref(false);
+const captchaSvg = ref("");
+const captchaId = ref("");
+const captchaInput = ref("");
+const captchaError = ref("");
+const captchaSummary = ref({ name: "", content: "" });
 
 function escapeHtml(s = ""): string {
   return s
@@ -218,13 +235,47 @@ function addFloat(f: FloatItem | null): void {
   }
 }
 
-async function postMessage(): Promise<void> {
+async function refreshCaptcha(): Promise<void> {
+  try {
+    const data = await fetchCaptcha();
+    captchaId.value = data.captchaId;
+    captchaSvg.value = data.svg;
+    captchaError.value = "";
+  } catch (e) {
+    captchaError.value = "获取验证码失败，请重试";
+  }
+}
+
+function openCaptchaModal(): void {
   const content = (text.value ?? "").trim();
-  if (!content || content.length > MAX) return;
   const name = username.value?.trim() || "匿名";
+  if (!content || content.length > MAX) return;
+
+  captchaSummary.value = { name, content };
+  captchaInput.value = "";
+  captchaError.value = "";
+  captchaModalVisible.value = true;
+  refreshCaptcha();
+}
+
+function closeCaptchaModal(): void {
+  captchaModalVisible.value = false;
+  captchaInput.value = "";
+  captchaError.value = "";
+}
+
+async function confirmCaptcha(): Promise<void> {
+  const content = captchaSummary.value.content;
+  const name = captchaSummary.value.name;
+  if (!content || !captchaInput.value.trim()) return;
 
   try {
-    const saved = await postTalk({ username: name, text: content });
+    const saved = await postTalk({
+      username: name,
+      text: content,
+      captchaId: captchaId.value,
+      captcha: captchaInput.value.trim(),
+    });
     messages.value.unshift(saved);
     const f = makeFloatFromMsg(saved);
     addFloat(f);
@@ -232,18 +283,33 @@ async function postMessage(): Promise<void> {
       localStorage.setItem(NAME_KEY, name);
     } catch {}
     text.value = "";
-  } catch (e) {
-    const msg: TalkMessage = {
-      id: Date.now(),
-      username: name,
-      text: content,
-      time: Date.now(),
-    };
-    messages.value.unshift(msg);
-    const f = makeFloatFromMsg(msg);
-    addFloat(f);
-    text.value = "";
+    closeCaptchaModal();
+  } catch (e: any) {
+    const status = e?.response?.status;
+    if (status === 429) {
+      captchaError.value = "操作过于频繁，请稍后再试";
+      refreshCaptcha();
+    } else if (status === 400) {
+      captchaError.value = "验证码错误";
+      refreshCaptcha();
+    } else {
+      captchaError.value = "发送失败，请重试";
+      refreshCaptcha();
+    }
   }
+}
+
+function handleSendClick(): void {
+  const content = (text.value ?? "").trim();
+  if (!content || content.length > MAX) return;
+
+  if (!captchaId.value) {
+    openCaptchaModal();
+    return;
+  }
+
+  // 如果已有 captchaId（之前验证过），直接打开弹窗复用
+  openCaptchaModal();
 }
 
 async function loadRemoteMessages(): Promise<void> {
@@ -267,345 +333,9 @@ async function loadRemoteMessages(): Promise<void> {
   }
 }
 
-// --- 游戏逻辑 ---
-const ballEl: Ref<HTMLElement | null> = ref(null);
-const paddleEl: Ref<HTMLElement | null> = ref(null);
-const talkRef: Ref<HTMLElement | null> = ref(null);
-
-let vw = 0,
-  vh = 0;
-const ballR = 10;
-const ballX = ref<number>(0);
-const ballY = ref<number>(0);
-let vx = 0,
-  vy = 0;
-const BALL_SPEED = 6; // 恒定速度
-let animId = 0;
-const paddleW = 250;
-const paddleH = 10;
-const paddleX = ref<number>(0);
-const paddleY = ref<number>(0);
-let running = false;
-const homeX = ref<number>(0);
-const homeY = ref<number>(0);
-
-// aiming state
-const isAiming = ref(false);
-const aimStartX = ref<number>(0);
-const aimStartY = ref<number>(0);
-const aimX = ref<number>(0);
-const aimY = ref<number>(0);
-let aimTimeout: any = null;
-let activePointerId: number | null = null;
-
-function normalizeVelocity(): void {
-  const speed = Math.hypot(vx, vy);
-  if (speed > 0) {
-    vx = (vx / speed) * BALL_SPEED;
-    vy = (vy / speed) * BALL_SPEED;
-  }
-}
-
-function checkFloatCollisions(): void {
-  try {
-    for (const f of floats.value) {
-      if (f._hit) continue;
-      const el = document.querySelector(
-        `[data-fid="${f.id}"]`
-      ) as HTMLElement | null;
-      if (!el) continue;
-      const rect = el.getBoundingClientRect();
-      // 跳过还没进入屏幕的浮动物品
-      if (rect.right < 0 || rect.left > vw) continue;
-      const fx = rect.left + rect.width / 2;
-      const fy = rect.top + rect.height / 2;
-      const dx = fx - ballX.value;
-      const dy = fy - ballY.value;
-      const dist = Math.hypot(dx, dy);
-      // 放宽碰撞阈值，让碰撞更容易触发
-      const threshold = ballR + Math.max(14, rect.height / 2 + 6);
-      if (dist <= threshold) {
-        f._hit = true;
-        score.value += 1;
-        el.classList.add("float-hit");
-        // 基于碰撞法线反射，保持恒定速度
-        if (dist > 0.001) {
-          const nx = dx / dist;
-          const ny = dy / dist;
-          const dot = vx * nx + vy * ny;
-          vx = vx - 2 * dot * nx;
-          vy = vy - 2 * dot * ny;
-        }
-        normalizeVelocity();
-        setTimeout(() => {
-          const idx = floats.value.findIndex((it) => it.id === f.id);
-          if (idx >= 0) floats.value.splice(idx, 1);
-        }, 360);
-      }
-    }
-  } catch (e) {
-    // ignore DOM errors
-  }
-}
-
-function updateViewport(): void {
-  vw =
-    (window.visualViewport && window.visualViewport.width) ||
-    window.innerWidth ||
-    document.documentElement.clientWidth ||
-    document.body.clientWidth ||
-    0;
-  vh =
-    (window.visualViewport && window.visualViewport.height) ||
-    window.innerHeight ||
-    document.documentElement.clientHeight ||
-    document.body.clientHeight ||
-    0;
-  if (!vw || !vh) {
-    const rect = document.documentElement.getBoundingClientRect();
-    vw = vw || rect.width || 0;
-    vh = vh || rect.height || 0;
-  }
-  homeX.value = vw / 2;
-  homeY.value = vh / 2;
-  if (talkRef.value) {
-    const r = talkRef.value.getBoundingClientRect();
-    paddleX.value = Math.round(r.left + r.width / 2 - paddleW / 2);
-    paddleY.value = Math.round(r.top - 3 - paddleH);
-  } else {
-    paddleX.value = Math.round(vw / 2 - paddleW / 2);
-    paddleY.value = 8;
-  }
-  // 小球初始位置：正上方于横线平台中心
-  if (!running) {
-    ballX.value = paddleX.value + paddleW / 2;
-    ballY.value = paddleY.value - ballR - 2;
-    vx = 0;
-    vy = 0;
-  }
-}
-
-function pointerToPage(p: PointerEvent) {
-  return { x: p.pageX, y: p.pageY };
-}
-
-function onBallPointerDown(e: PointerEvent) {
-  if (!ballEl.value) return;
-  // only left button
-  if (e.button && e.button !== 0) return;
-  // start a short long-press delay
-  aimTimeout = setTimeout(() => {
-    isAiming.value = true;
-    // start point is current ball center
-    aimStartX.value = ballX.value;
-    aimStartY.value = ballY.value;
-    aimX.value = e.pageX;
-    aimY.value = e.pageY;
-    try {
-      ballEl.value?.setPointerCapture(e.pointerId);
-      activePointerId = e.pointerId;
-    } catch {}
-    window.addEventListener("pointermove", onBallPointerMove);
-    window.addEventListener("pointerup", onBallPointerUp);
-  }, 180);
-  // prevent clicks from triggering native behavior
-  e.preventDefault();
-}
-
-function onBallPointerMove(e: PointerEvent) {
-  if (!isAiming.value) return;
-  // pull vector = ball center - pointer => launch direction
-  const px = e.pageX;
-  const py = e.pageY;
-  let dx = aimStartX.value - px;
-  let dy = aimStartY.value - py;
-  const d = Math.hypot(dx, dy) || 1;
-  dx /= d;
-  dy /= d;
-  const arrowLen = 120;
-  aimX.value = Math.round(aimStartX.value + dx * arrowLen);
-  aimY.value = Math.round(aimStartY.value + dy * arrowLen);
-}
-
-function onBallPointerUp(e: PointerEvent) {
-  if (aimTimeout) {
-    clearTimeout(aimTimeout);
-    aimTimeout = null;
-  }
-  window.removeEventListener("pointermove", onBallPointerMove);
-  window.removeEventListener("pointerup", onBallPointerUp);
-  if (activePointerId !== null) {
-    try {
-      ballEl.value?.releasePointerCapture(activePointerId);
-    } catch {}
-    activePointerId = null;
-  }
-  if (isAiming.value) {
-    // compute launch direction from arrow (aim vector from start -> aim)
-    const dx = aimX.value - aimStartX.value;
-    const dy = aimY.value - aimStartY.value;
-    const dist = Math.hypot(dx, dy) || 1;
-    const nx = dx / dist;
-    const ny = dy / dist;
-    vx = nx * BALL_SPEED;
-    vy = ny * BALL_SPEED;
-    isAiming.value = false;
-    startLoop();
-  } else {
-    onBallClick();
-  }
-}
-
-function startLoop(): void {
-  if (running) return;
-  running = true;
-  let last = performance.now();
-  function loop(now: number) {
-    const dt = (now - last) / 16.6667;
-    last = now;
-    step(dt);
-    animId = requestAnimationFrame(loop);
-  }
-  animId = requestAnimationFrame(loop);
-}
-function stopLoop(): void {
-  running = false;
-  cancelAnimationFrame(animId);
-}
-
-function step(dt = 1): void {
-  // 限制最大 dt，防止切标签页后球瞬移
-  dt = Math.min(dt, 3);
-  // 子步长：防止球在单帧内穿过浮动物品（隧道效应）
-  const substeps = Math.ceil(dt);
-  const subDt = dt / substeps;
-  for (let s = 0; s < substeps; s++) {
-    ballX.value += vx * subDt;
-    ballY.value += vy * subDt;
-
-    // 顶部/左右墙壁反弹，保持恒定速度
-    if (ballY.value - ballR <= 0) {
-      ballY.value = ballR;
-      vy = Math.abs(vy);
-      normalizeVelocity();
-    }
-    if (ballX.value - ballR <= 0) {
-      ballX.value = ballR;
-      vx = Math.abs(vx);
-      normalizeVelocity();
-    } else if (ballX.value + ballR >= vw) {
-      ballX.value = vw - ballR;
-      vx = -Math.abs(vx);
-      normalizeVelocity();
-    }
-
-    // 浮动物品碰撞
-    try {
-      checkFloatCollisions();
-    } catch {}
-
-    // 挡板碰撞
-    const pLeft = paddleX.value;
-    const pRight = paddleX.value + paddleW;
-    const pTop = paddleY.value;
-    if (
-      ballY.value + ballR >= pTop &&
-      ballY.value - ballR <= pTop + paddleH &&
-      ballX.value >= pLeft - ballR &&
-      ballX.value <= pRight + ballR
-    ) {
-      ballY.value = pTop - ballR;
-      vy = -Math.abs(vy);
-      normalizeVelocity();
-    }
-
-    // 掉落底部：记录最高分，得分清零，重置小球
-    if (ballY.value + ballR >= vh) {
-      if (score.value > highScore.value) {
-        highScore.value = score.value;
-        try {
-          localStorage.setItem(HIGH_SCORE_KEY, String(highScore.value));
-        } catch {}
-      }
-      score.value = 0;
-      updateViewport();
-      ballX.value = paddleX.value + paddleW / 2;
-      ballY.value = paddleY.value - ballR - 2;
-      vx = 0;
-      vy = 0;
-      stopLoop();
-      return;
-    }
-  }
-}
-
-function onBallClick(): void {
-  if (!running) {
-    updateViewport();
-    ballX.value = paddleX.value + paddleW / 2;
-    ballY.value = paddleY.value - ballR - 2;
-    vx = 0;
-    vy = -BALL_SPEED;
-    startLoop();
-  }
-}
-
-function resetGame(): void {
-  stopLoop();
-  score.value = 0;
-  updateViewport();
-  ballX.value = paddleX.value + paddleW / 2;
-  ballY.value = paddleY.value - ballR - 2;
-  vx = 0;
-  vy = 0;
-}
-
-function onKeyDown(e: KeyboardEvent): void {
-  const key = e.key.toLowerCase();
-  if (key === "a") {
-    paddleX.value = Math.max(3, paddleX.value - 12);
-    if (!running) {
-      ballX.value = paddleX.value + paddleW / 2;
-      ballY.value = paddleY.value - ballR - 2;
-    }
-  } else if (key === "d") {
-    paddleX.value = Math.min(vw - paddleW - 3, paddleX.value + 12);
-    if (!running) {
-      ballX.value = paddleX.value + paddleW / 2;
-      ballY.value = paddleY.value - ballR - 2;
-    }
-  }
-}
-
-let dragging = false;
-let dragOffsetX = 0;
-function onPaddleMouseDown(e: MouseEvent): void {
-  dragging = true;
-  dragOffsetX = e.clientX - paddleX.value;
-  e.preventDefault();
-}
-function onGlobalMouseMove(e: MouseEvent): void {
-  if (!dragging) return;
-  paddleX.value = Math.min(
-    Math.max(2, e.clientX - dragOffsetX),
-    Math.max(2, vw - paddleW - 2)
-  );
-  if (!running) {
-    ballX.value = paddleX.value + paddleW / 2;
-    ballY.value = paddleY.value - ballR - 2;
-  }
-}
-function onGlobalMouseUp(): void {
-  dragging = false;
-}
+const talkRef = ref<HTMLElement | null>(null);
 
 onMounted(() => {
-  // 加载最高分
-  try {
-    const saved = localStorage.getItem(HIGH_SCORE_KEY);
-    if (saved) highScore.value = Number(saved) || 0;
-  } catch {}
-
   loadRemoteMessages().finally(() => {
     try {
       const name = localStorage.getItem(NAME_KEY);
@@ -631,39 +361,10 @@ onMounted(() => {
     },
     { deep: true }
   );
+});
 
-  requestAnimationFrame(() => updateViewport());
-
-  const onResize = () => requestAnimationFrame(updateViewport);
-  window.addEventListener("resize", onResize);
-  document.addEventListener("keydown", onKeyDown);
-  document.addEventListener("mousemove", onGlobalMouseMove);
-  document.addEventListener("mouseup", onGlobalMouseUp);
-
-  nextTick(() => {
-    if (paddleEl.value)
-      paddleEl.value.addEventListener("mousedown", onPaddleMouseDown);
-    if (ballEl.value)
-      ballEl.value.addEventListener("pointerdown", onBallPointerDown);
-  });
-
-  onBeforeUnmount(() => {
-    window.removeEventListener("resize", onResize);
-    document.removeEventListener("keydown", onKeyDown);
-    document.removeEventListener("mousemove", onGlobalMouseMove);
-    document.removeEventListener("mouseup", onGlobalMouseUp);
-    if (paddleEl.value)
-      paddleEl.value.removeEventListener("mousedown", onPaddleMouseDown);
-    if (ballEl.value)
-      ballEl.value.removeEventListener("pointerdown", onBallPointerDown);
-    window.removeEventListener("pointermove", onBallPointerMove);
-    window.removeEventListener("pointerup", onBallPointerUp);
-    if (aimTimeout) {
-      clearTimeout(aimTimeout);
-      aimTimeout = null;
-    }
-    stopLoop();
-  });
+onBeforeUnmount(() => {
+  // 无游戏相关清理
 });
 </script>
 
@@ -673,25 +374,6 @@ onMounted(() => {
   animation-name: floatLeft;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
-}
-
-.float-hit {
-  animation: floatHit 360ms forwards;
-}
-
-@keyframes floatHit {
-  0% {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.35) translateY(-8px);
-    opacity: 0.9;
-  }
-  100% {
-    transform: scale(0.6) translateY(-14px);
-    opacity: 0;
-  }
 }
 
 @keyframes floatLeft {
@@ -706,5 +388,26 @@ onMounted(() => {
     transform: translateX(-100vw);
     opacity: 0;
   }
+}
+
+/* 弹窗淡入动画 */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active .relative,
+.modal-fade-leave-active .relative {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-fade-enter-from .relative,
+.modal-fade-leave-to .relative {
+  transform: scale(0.92) translateY(8px);
 }
 </style>

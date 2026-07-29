@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import talkRouter from "./routes/talk.js";
 import articleRouter from "./routes/article.js";
+import musicRouter from "./routes/music.js";
 
 const app = express();
 const PORT = 3000;
@@ -12,6 +13,7 @@ app.use(express.static("public"));
 
 app.use("/api/talk", talkRouter);
 app.use("/api/articles", articleRouter);
+app.use("/api/music", musicRouter);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });

@@ -1,19 +1,13 @@
 <template>
   <div class="flex flex-col items-center justify-center min-h-screen select-none">
-    
     <!-- 名片卡片 -->
     <div class="flex flex-col items-center gap-5 p-8 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-lg w-80">
-      <!-- 头像 -->
       <img
         :src="avatar"
         alt="Yukino"
         class="w-24 h-24 rounded-full object-cover border-2 border-white/20 shadow-md"
       />
-
-      <!-- 名字 -->
       <h2 class="text-xl font-semibold text-[#e0e0e0] m-0">Yukino</h2>
-
-      <!-- GitHub 链接 -->
       <a
         href="https://github.com/Yukin0Sh1ta"
         target="_blank"
@@ -32,11 +26,7 @@
         </svg>
         <span class="text-sm">GitHub</span>
       </a>
-
-      <!-- 分割线 -->
       <div class="w-full h-px bg-white/10"></div>
-
-      <!-- 签名 -->
       <p class="text-sm text-[#9a9a9a] m-0 italic">不断学习中>>>️</p>
     </div>
   </div>

@@ -1,7 +1,25 @@
 import { Router, Request, Response } from "express";
+import rateLimit from "express-rate-limit";
 import { getTalks, addTalk, TalkMessage } from "../services/talkService.js";
+import { createCaptcha, verifyCaptcha } from "../services/captchaService.js";
 
 const router = Router();
+
+const postLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "too many requests, try later" },
+});
+
+const captchaLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "too many captcha requests" },
+});
 
 router.get("/", async (_req: Request, res: Response) => {
   try {
@@ -13,8 +31,26 @@ router.get("/", async (_req: Request, res: Response) => {
   }
 });
 
-router.post("/", async (req: Request, res: Response) => {
-  const { username, text } = req.body || {};
+router.get("/captcha", captchaLimiter, (_req: Request, res: Response) => {
+  const { captchaId, svg } = createCaptcha();
+  res.json({ captchaId, svg });
+});
+
+router.post("/", postLimiter, async (req: Request, res: Response) => {
+  const { username, text, captchaId, captcha } = req.body || {};
+  if (
+    !captchaId ||
+    typeof captchaId !== "string" ||
+    !captcha ||
+    typeof captcha !== "string"
+  ) {
+    res.status(400).json({ error: "captcha invalid" });
+    return;
+  }
+  if (!verifyCaptcha(captchaId, captcha)) {
+    res.status(400).json({ error: "captcha invalid" });
+    return;
+  }
   if (!text || typeof text !== "string" || text.trim().length === 0) {
     res.status(400).json({ error: "invalid text" });
     return;

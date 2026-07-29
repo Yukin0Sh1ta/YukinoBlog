@@ -12,7 +12,7 @@
       stroke-linecap="round"
       stroke-linejoin="round"
       class="text-[#9a9a9a] shrink-0"
-      :class="{ 'text-[#ea5cb6]': playing }"
+      :class="{ 'text-[#ea5cb6]': musicStore.playing }"
     >
       <path d="M9 18V5l12-2v13" />
       <circle
@@ -30,17 +30,17 @@
     <!-- 歌曲名（可点击切歌） -->
     <span
       class="text-xs text-[#9a9a9a] truncate max-w-[120px] cursor-pointer hover:text-[#e0e0e0] transition-colors"
-      :title="currentSong?.name || '未选择'"
-      @click="next"
+      :title="musicStore.currentSong?.name || '未选择'"
+      @click="musicStore.next()"
     >
-      {{ currentSong?.name || '未选择' }}
+      {{ musicStore.currentSong?.name || '未选择' }}
     </span>
 
     <!-- 控制按钮组 -->
     <div class="flex items-center gap-1.5">
       <!-- 上一首 -->
       <button
-        @click="prev"
+        @click="musicStore.prev()"
         class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 border-none cursor-pointer flex items-center justify-center text-[#9a9a9a] hover:text-white transition-colors"
         title="上一首"
       >
@@ -57,12 +57,12 @@
 
       <!-- 播放/暂停 -->
       <button
-        @click="togglePlay"
+        @click="musicStore.togglePlay()"
         class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border-none cursor-pointer flex items-center justify-center text-[#e0e0e0] hover:text-white transition-colors"
-        :title="playing ? '暂停' : '播放'"
+        :title="musicStore.playing ? '暂停' : '播放'"
       >
         <svg
-          v-if="playing"
+          v-if="musicStore.playing"
           xmlns="http://www.w3.org/2000/svg"
           width="16"
           height="16"
@@ -85,7 +85,7 @@
 
       <!-- 下一首 -->
       <button
-        @click="next"
+        @click="musicStore.next()"
         class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 border-none cursor-pointer flex items-center justify-center text-[#9a9a9a] hover:text-white transition-colors"
         title="下一首"
       >
@@ -104,7 +104,7 @@
     <!-- 音量控制 -->
     <div class="flex items-center gap-1.5 group/vol">
       <svg
-        @click="toggleMute"
+        @click="musicStore.toggleMute()"
         xmlns="http://www.w3.org/2000/svg"
         width="14"
         height="14"
@@ -116,7 +116,7 @@
         stroke-linejoin="round"
         class="text-[#9a9a9a] hover:text-white cursor-pointer transition-colors shrink-0"
       >
-        <template v-if="volume === 0 || muted">
+        <template v-if="musicStore.volume === 0 || musicStore.muted">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
           <line
             x1="23"
@@ -131,7 +131,7 @@
             y2="15"
           />
         </template>
-        <template v-else-if="volume < 0.5">
+        <template v-else-if="musicStore.volume < 0.5">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
           <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
         </template>
@@ -144,8 +144,8 @@
         type="range"
         min="0"
         max="100"
-        :value="Math.round(volume * 100)"
-        @input="setVolume"
+        :value="Math.round(musicStore.volume * 100)"
+        @input="musicStore.setVolume(Number(($event.target as HTMLInputElement).value) / 100)"
         class="w-16 h-1 accent-[#ea5cb6] cursor-pointer opacity-60 hover:opacity-100 transition-opacity"
         title="音量"
       />
@@ -154,119 +154,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from "vue";
+import { onMounted } from "vue";
+import { useMusicStore } from "../stores/music";
 
-interface Song {
-  name: string;
-  artist: string;
-  url: string;
-}
+const musicStore = useMusicStore();
 
-// ====== 播放列表（替换 URL 为你自己的音乐链接） ======
-const playlist: Song[] = [
-  {
-    name: "サターン",
-    artist: "歌手 A",
-    url: "http://music.163.com/song/media/outer/url?id=2126406625.mp3",
-  },
-  {
-    name: "嘘じゃない",
-    artist: "歌手 B",
-    url: "http://music.163.com/song/media/outer/url?id=2159057240.mp3",
-  },
-  {
-    name: "海馬成長痛",
-    artist: "歌手 C",
-    url: "http://music.163.com/song/media/outer/url?id=2622088764.mp3",
-  },
-];
-
-const currentIndex = ref(0);
-const playing = ref(false);
-const volume = ref(0.5);
-const muted = ref(false);
-
-const audio = new Audio();
-audio.volume = volume.value;
-let audioInited = false;
-
-const currentSong = ref<Song | null>(playlist.length > 0 ? playlist[0] : null);
-
-function initAudio() {
-  if (audioInited) return;
-  audioInited = true;
-
-  audio.addEventListener("ended", () => next());
-  audio.addEventListener("error", () => {
-    console.warn("音频加载失败:", currentSong.value?.url);
-    playing.value = false;
-  });
-  audio.addEventListener("play", () => {
-    playing.value = true;
-  });
-  audio.addEventListener("pause", () => {
-    playing.value = false;
-  });
-}
-
-function loadAndPlay(index: number) {
-  if (index < 0 || index >= playlist.length) return;
-  initAudio();
-  currentIndex.value = index;
-  currentSong.value = playlist[index];
-  audio.src = playlist[index].url;
-  audio.load();
-  audio.play().catch((e) => {
-    console.warn("播放失败:", e);
-    playing.value = false;
-  });
-}
-
-function togglePlay() {
-  if (!currentSong.value) return;
-  initAudio();
-  if (playing.value) {
-    audio.pause();
-  } else {
-    if (!audio.src || audio.src !== currentSong.value.url) {
-      audio.src = currentSong.value.url;
-      audio.load();
-    }
-    audio.play().catch((e) => {
-      console.warn("播放失败:", e);
-      playing.value = false;
-    });
-  }
-}
-
-function next() {
-  loadAndPlay((currentIndex.value + 1) % playlist.length);
-}
-
-function prev() {
-  loadAndPlay((currentIndex.value - 1 + playlist.length) % playlist.length);
-}
-
-function setVolume(e: Event) {
-  const v = Number((e.target as HTMLInputElement).value) / 100;
-  volume.value = v;
-  audio.volume = v;
-  if (v > 0) muted.value = false;
-}
-
-function toggleMute() {
-  if (volume.value === 0) {
-    volume.value = 0.5;
-    audio.volume = 0.5;
-    muted.value = false;
-  } else {
-    muted.value = !muted.value;
-    audio.volume = muted.value ? 0 : volume.value;
-  }
-}
-
-onBeforeUnmount(() => {
-  audio.pause();
-  audio.src = "";
+// 组件挂载时确保 store 初始化（绑定事件监听、恢复 localStorage 状态）。
+// init() 幂等，多次挂载也只会绑定一次。
+onMounted(() => {
+  musicStore.init();
 });
 </script>

@@ -19,10 +19,10 @@
         </svg>
       </button>
       <img
-        :src="currentArticle.logo"
+        :src="currentArticle?.logo"
         class="size-[30px] object-contain"
       >
-      <h1 class="m-0 text-xl font-semibold">{{ currentArticle.name }}</h1>
+      <h1 class="m-0 text-xl font-semibold">{{ currentArticle?.name }}</h1>
     </div>
 
     <ArticleSider @param-change="handleParamChange" />
