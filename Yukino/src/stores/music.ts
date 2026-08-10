@@ -15,19 +15,19 @@ function songUrl(id: string): string {
 // ====== 播放列表 ======
 const playlist: Song[] = [
   {
-    name: "サターン",
-    artist: "歌手 A",
-    id: "2126406625",
+    name: "みずいろの雨",
+    artist: "松任谷由実",
+    id: "26211236",
   },
   {
-    name: "嘘じゃない",
-    artist: "歌手 B",
-    id: "2159057240",
+    name: "One Last Kiss",
+    artist: "Hikaru Utada",
+    id: "1835122771",
   },
   {
-    name: "海馬成長痛",
-    artist: "歌手 C",
-    id: "2622088764",
+    name: "星と僕らと",
+    artist: "须田景凪",
+    id: "864433778",
   },
 ];
 
@@ -47,7 +47,7 @@ function loadState(): Partial<PersistedState> | null {
     return {
       currentIndex:
         typeof parsed.currentIndex === "number" ? parsed.currentIndex : 0,
-      volume: typeof parsed.volume === "number" ? parsed.volume : 0.5,
+      volume: typeof parsed.volume === "number" ? parsed.volume : 0.2,
       muted: typeof parsed.muted === "boolean" ? parsed.muted : false,
     };
   } catch (e) {
@@ -62,7 +62,7 @@ export const useMusicStore = defineStore("music", () => {
   // ====== State ======
   const currentIndex = ref<number>(restored?.currentIndex ?? 0);
   const playing = ref<boolean>(false); // 不持久化，刷新后默认暂停
-  const volume = ref<number>(restored?.volume ?? 0.5);
+  const volume = ref<number>(restored?.volume ?? 0.2);
   const muted = ref<boolean>(restored?.muted ?? false);
   const currentTime = ref<number>(0); // 不持久化，audio 需重新加载
 
@@ -122,6 +122,37 @@ export const useMusicStore = defineStore("music", () => {
       console.warn("音频加载失败:", currentSong.value?.id);
       playing.value = false;
     });
+
+    // 进入网站自动播放
+    // Edge/Chrome 策略：静音自动播放始终允许，有声音的会被阻止。
+    // 策略：先静音播放，播放成功后恢复音量；失败则在首次交互时恢复。
+    if (currentSong.value) {
+      audio.src = songUrl(currentSong.value.id);
+      audio.muted = true;
+      audio.volume = 0;
+      audio.load();
+
+      const tryAutoplay = () => {
+        audio.play().then(() => {
+          audio.muted = muted.value;
+          audio.volume = muted.value ? 0 : volume.value;
+        }).catch(() => {
+          const resume = () => {
+            audio.muted = muted.value;
+            audio.volume = muted.value ? 0 : volume.value;
+            audio.play().catch(() => {});
+            document.removeEventListener("click", resume);
+            document.removeEventListener("keydown", resume);
+            document.removeEventListener("touchstart", resume);
+          };
+          document.addEventListener("click", resume);
+          document.addEventListener("keydown", resume);
+          document.addEventListener("touchstart", resume);
+        });
+      };
+
+      audio.addEventListener("canplay", tryAutoplay, { once: true });
+    }
   }
 
   function loadAndPlay(index: number) {
@@ -171,8 +202,8 @@ export const useMusicStore = defineStore("music", () => {
 
   function toggleMute() {
     if (volume.value === 0) {
-      volume.value = 0.5;
-      audio.volume = 0.5;
+      volume.value = 0.2;
+      audio.volume = 0.2;
       muted.value = false;
     } else {
       muted.value = !muted.value;

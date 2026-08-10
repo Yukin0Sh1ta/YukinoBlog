@@ -24,7 +24,7 @@
     <div class="flex gap-2 items-center justify-end">
       <button
         type="button"
-        class="h-8 px-2.5 py-1.5 rounded-[10px] border-none bg-[linear-gradient(90deg,#ea5cb6,#d83e93)] text-white font-semibold shadow-[0_6px_14px_rgba(47,176,255,0.14)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed max-sm:h-7 max-sm:px-2"
+        class="h-8 px-2.5 py-1.5 rounded-[10px] border-none bg-[linear-gradient(90deg,#ea5cb6,#d83e93)] text-white font-semibold flex items-center justify-center shadow-[0_6px_14px_rgba(47,176,255,0.14)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed max-sm:h-7 max-sm:px-2"
         @click="handleSendClick"
         :disabled="!canSend"
       >发送</button>
@@ -202,14 +202,14 @@ function makeFloatFromMsg(msg: Partial<TalkMessage> | any): FloatItem | null {
     const top = Math.floor(
       minTop + Math.random() * Math.max(0, maxTop - minTop)
     );
-    const baseDuration = 36;
+    const baseDuration = 14;
     const duration = Math.min(
-      240,
-      baseDuration + Math.max(0, (msg.text?.length || 0) / 2)
+      60,
+      baseDuration + Math.max(0, (msg.text?.length || 0) / 4)
     );
     const color = `hsl(${Math.floor(Math.random() * 360)}, 70%, 45%)`;
     const size = 12 + Math.floor(Math.random() * 8);
-    const delay = 0.2 + Math.random() * 1.2;
+    const delay = 0;
     return {
       id: msg.id ?? Date.now(),
       display: `${msg.username ?? "匿名"}: ${msg.text ?? ""}`,
